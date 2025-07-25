@@ -1,0 +1,74 @@
+-- ★ Crafted by Kin ★
+-- AFK Simulation (Idle animation + fake camera wiggle)
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local player = Players.LocalPlayer
+
+local IDLE_TIME = 60 -- seconds before starting idle animation
+local CAMERA_SHAKE = true
+local SHAKE_INTENSITY = 0.2
+
+local lastInput = tick()
+local isAFK = false
+
+-- Track input
+UserInputService.InputBegan:Connect(function()
+	lastInput = tick()
+	if isAFK then
+		isAFK = false
+		workspace.CurrentCamera.CameraType = Enum.CameraType.Custom
+	end
+end)
+
+-- Idle loop
+RunService.RenderStepped:Connect(function()
+	if tick() - lastInput >= IDLE_TIME and not isAFK then
+		isAFK = true
+		startIdleMode()
+	end
+
+	if isAFK and CAMERA_SHAKE then
+		simulateCameraWiggle()
+	end
+end)
+
+-- Idle animation
+function startIdleMode()
+	local char = player.Character
+	if not char then return end
+	local humanoid = char:FindFirstChildOfClass("Humanoid")
+	if humanoid then
+		humanoid:LoadAnimation(getIdleAnim()):Play()
+	end
+
+	if CAMERA_SHAKE then
+		workspace.CurrentCamera.CameraType = Enum.CameraType.Scriptable
+	end
+end
+
+-- Load idle anim
+function getIdleAnim()
+	local anim = Instance.new("Animation")
+	anim.AnimationId = "rbxassetid://180436334" -- default idle (change if desired)
+	return anim
+end
+
+-- Simulate slight movement
+function simulateCameraWiggle()
+	local cam = workspace.CurrentCamera
+	if cam.CameraType ~= Enum.CameraType.Scriptable then return end
+
+	local now = tick()
+	local offset = Vector3.new(
+		math.sin(now * 0.5) * SHAKE_INTENSITY,
+		math.cos(now * 0.3) * SHAKE_INTENSITY,
+		math.sin(now * 0.7) * SHAKE_INTENSITY
+	)
+
+	local target = player.Character and player.Character:FindFirstChild("Head")
+	if target then
+		cam.CFrame = CFrame.new(target.Position + Vector3.new(0, 2, 4)) * CFrame.Angles(0, math.rad(180), 0) * CFrame.new(offset)
+	end
+end
